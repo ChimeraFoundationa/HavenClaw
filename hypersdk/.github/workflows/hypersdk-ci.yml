@@ -1,0 +1,163 @@
+name: HyperSDK CI
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go-mod-tidy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: ./.github/actions/install-go
+      - shell: bash
+        run: go mod tidy
+      - shell: bash
+        working-directory: ./examples/morpheusvm
+        run: go mod tidy
+      - shell: bash
+        run: git diff
+      - shell: bash
+        run: scripts/tests.clean.sh
+
+  test_build_docker_image:
+    name: Image build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install qemu (required for cross-platform builds)
+        run: |
+          sudo apt update
+          sudo apt -y install qemu-system qemu-user-static
+      - name: Check image build
+        shell: bash
+        run: bash -x scripts/tests.build_docker_image.sh
+
+  hypersdk-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: ./.github/actions/install-go
+      - name: Run static analysis tests
+        shell: bash
+        run: scripts/lint.sh
+      - name: Run shellcheck
+        shell: bash
+        run: scripts/tests.shellcheck.sh
+      - name: Run actionlint
+        shell: bash
+        run: scripts/tests.actionlint.sh
+      - name: Ensure consistent avalanchego version
+        shell: bash
+        run: |
+          scripts/update_avalanchego_version.sh
+          git diff --exit-code
+
+  # This workflow job ensures generated code is up-to-date
+  # It verifies developers have properly run code generation locally before committing, preventing inconsistencies between checked-in generated files and what the generator would produce.
+  check_generated_code:
+    name: Verify go generate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: ./.github/actions/install-go
+      - shell: bash
+        run: go generate ./...
+      - shell: bash
+        run: .github/workflows/check-clean-branch.sh
+
+  hypersdk-unit-tests:
+    runs-on: ubuntu-22.04-32
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: ./.github/actions/install-go
+      - name: Run unit tests
+        shell: bash
+        run: scripts/tests.unit.sh
+
+  hypersdk-benchmark-tests:
+    runs-on: ubuntu-22.04-32
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: ./.github/actions/install-go
+      - name: Benchmark
+        shell: bash
+        run: scripts/tests.benchmark.sh
+
+  # MorpheusVM
+  morpheusvm-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: ./.github/actions/install-go
+        with:
+          cache-dependency-path: |
+            go.sum
+            examples/morpheusvm/go.sum
+      - name: Run static analysis tests
+        working-directory: ./examples/morpheusvm
+        shell: bash
+        run: scripts/lint.sh
+      - name: Build vm, cli
+        working-directory: ./examples/morpheusvm
+        shell: bash
+        run: scripts/build.sh
+
+  morpheusvm-unit-tests:
+    runs-on: ubuntu-22.04-32
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: ./.github/actions/install-go
+        with:
+          cache-dependency-path: |
+            go.sum
+            examples/morpheusvm/go.sum
+      - name: Run unit tests
+        working-directory: ./examples/morpheusvm
+        shell: bash
+        run: scripts/tests.unit.sh
+
+  morpheusvm-e2e-tests:
+    runs-on: ubuntu-22.04-32
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: ./.github/actions/install-go
+        with:
+          cache-dependency-path: |
+            go.sum
+            examples/morpheusvm/go.sum
+      - name: Run e2e tests
+        uses: ava-labs/avalanchego/.github/actions/run-monitored-tmpnet-cmd@c8b3f57d2a2556d41ca6a0b2da11561b1d7bab75
+        with:
+          run: ./examples/morpheusvm/scripts/run.sh
+          run_env: MODE='test'
+          artifact_prefix: morpheusvm-e2e
+          prometheus_username: ${{ secrets.PROMETHEUS_ID || '' }}
+          prometheus_password: ${{ secrets.PROMETHEUS_PASSWORD || '' }}
+          loki_username: ${{ secrets.LOKI_ID || '' }}
+          loki_password: ${{ secrets.LOKI_PASSWORD || '' }}

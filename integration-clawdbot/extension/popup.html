@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Haven Framework</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 320px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+      color: white;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .logo {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #a5b4fc 0%, #c4b5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+
+    .status {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .status-item:last-child {
+      border-bottom: none;
+    }
+
+    .status-label {
+      font-size: 13px;
+      color: #9ca3af;
+    }
+
+    .status-value {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .status-value.success {
+      color: #4ade80;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: block;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .footer {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: center;
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    .footer a {
+      color: #a5b4fc;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">🏛️</div>
+    <h1>Haven Framework</h1>
+    <p class="subtitle">AI Agent Coordination</p>
+  </div>
+
+  <div class="status">
+    <div class="status-item">
+      <span class="status-label">Status</span>
+      <span class="status-value success">● Active</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Network</span>
+      <span class="status-value">Avalanche Fuji</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Contract</span>
+      <span class="status-value" style="font-family: monospace; font-size: 11px;">0xE5fB...294</span>
+    </div>
+  </div>
+
+  <a href="https://testnet.snowscan.xyz" target="_blank" class="btn">
+    View on Explorer
+  </a>
+  
+  <a href="https://github.com/haven-framework" target="_blank" class="btn btn-secondary">
+    GitHub
+  </a>
+
+  <div class="footer">
+    <p>Built on Avalanche</p>
+    <p><a href="https://haven.framework" target="_blank">Learn More →</a></p>
+  </div>
+
+  <script>
+    // Check if on Clawdbot
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const tab = tabs[0]
+      const isClawdbot = tab.url?.includes('clowd.bot') || tab.url?.includes('openclaw.ai')
+      
+      if (isClawdbot) {
+        document.querySelector('.subtitle').textContent = 'Clawdbot Integration'
+      }
+    })
+  </script>
+</body>
+</html>

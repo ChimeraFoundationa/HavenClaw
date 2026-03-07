@@ -1,0 +1,151 @@
+{
+  "name": "havenclaw",
+  "version": "1.0.0",
+  "description": "Agent Coordination Framework CLI for HavenVM - Trustless AI agent coordination on Avalanche",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "havenclaw": "./havenclaw.mjs"
+  },
+  "packageManager": "pnpm@10.23.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ava-labs/havenclaw.git"
+  },
+  "keywords": [
+    "haven",
+    "havenvm",
+    "avalanche",
+    "agent",
+    "coordination",
+    "ai",
+    "blockchain",
+    "web3",
+    "erc6551",
+    "erc8004",
+    "zero-knowledge",
+    "zk",
+    "prediction-market",
+    "governance"
+  ],
+  "author": "Ava Labs",
+  "homepage": "https://havenclaw.ai",
+  "bugs": {
+    "url": "https://github.com/ava-labs/havenclaw/issues"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsx src/cli/entry.ts",
+    "start": "node dist/entry.js",
+    "test": "vitest run",
+    "test:unit": "vitest run --config vitest.unit.config.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "test:coverage": "vitest run --coverage",
+    "lint": "oxlint",
+    "check": "pnpm run lint && tsc --noEmit",
+    "format": "oxfmt write",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm run build",
+    "ui:dev": "cd apps/web && pnpm dev",
+    "ui:build": "cd apps/web && pnpm build",
+    "docs:dev": "cd docs && pnpm dev"
+  },
+  "dependencies": {
+    "@agentclientprotocol/sdk": "0.14.1",
+    "@clack/prompts": "^1.0.1",
+    "@mariozechner/pi-agent-core": "0.55.3",
+    "@mariozechner/pi-ai": "0.55.3",
+    "@sinclair/typebox": "0.34.48",
+    "ajv": "^8.18.0",
+    "chalk": "^5.6.2",
+    "chokidar": "^5.0.0",
+    "commander": "^14.0.3",
+    "dotenv": "^17.3.1",
+    "ethers": "^6.13.5",
+    "express": "^5.2.1",
+    "ipfs-http-client": "^60.0.1",
+    "json5": "^2.2.3",
+    "node-fetch": "^3.3.2",
+    "tslog": "^4.10.2",
+    "viem": "^2.23.5",
+    "ws": "^8.19.0",
+    "yaml": "^2.8.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.3.3",
+    "@types/ws": "^8.18.1",
+    "@vitest/coverage-v8": "^4.0.18",
+    "oxfmt": "0.35.0",
+    "oxlint": "^1.50.0",
+    "tsdown": "0.21.0-beta.2",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "peerDependencies": {
+    "node-llama-cpp": "3.16.2"
+  },
+  "peerDependenciesMeta": {
+    "node-llama-cpp": {
+      "optional": true
+    }
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./plugin-sdk": {
+      "types": "./dist/plugin-sdk/index.d.ts",
+      "default": "./dist/plugin-sdk/index.js"
+    },
+    "./plugin-sdk/haven": {
+      "types": "./dist/plugin-sdk/haven.d.ts",
+      "default": "./dist/plugin-sdk/haven.js"
+    },
+    "./plugin-sdk/agent": {
+      "types": "./dist/plugin-sdk/agent.d.ts",
+      "default": "./dist/plugin-sdk/agent.js"
+    },
+    "./plugin-sdk/task": {
+      "types": "./dist/plugin-sdk/task.d.ts",
+      "default": "./dist/plugin-sdk/task.js"
+    },
+    "./plugin-sdk/prediction": {
+      "types": "./dist/plugin-sdk/prediction.d.ts",
+      "default": "./dist/plugin-sdk/prediction.js"
+    },
+    "./plugin-sdk/governance": {
+      "types": "./dist/plugin-sdk/governance.d.ts",
+      "default": "./dist/plugin-sdk/governance.js"
+    },
+    "./cli-entry": "./havenclaw.mjs"
+  },
+  "files": [
+    "CHANGELOG.md",
+    "LICENSE",
+    "havenclaw.mjs",
+    "README.md",
+    "assets/",
+    "dist/",
+    "extensions/",
+    "skills/"
+  ],
+  "pnpm": {
+    "overrides": {
+      "@sinclair/typebox": "0.34.48",
+      "tar": "7.5.10"
+    },
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

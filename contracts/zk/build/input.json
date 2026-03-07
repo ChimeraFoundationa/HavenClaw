@@ -1,0 +1,23 @@
+{
+    "agentId": "1234567890123456",
+    "capabilityHash": "9876543210987654",
+    "avgAccuracy": "92",
+    "timestamp": "1709481600",
+    "reserved1": "0",
+    "reserved2": "0",
+    "score0": "95",
+    "score1": "90",
+    "score2": "92",
+    "score3": "88",
+    "score4": "94",
+    "score5": "93",
+    "thresh0": "90",
+    "thresh1": "85",
+    "thresh2": "90",
+    "thresh3": "85",
+    "thresh4": "90",
+    "thresh5": "90",
+    "modelCommitment": "1111111111111111",
+    "secretKey": "9999999999999999",
+    "salt": "7777777777777777"
+}

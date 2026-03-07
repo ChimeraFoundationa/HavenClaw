@@ -1,0 +1,19 @@
+{
+  "name": "haven-contracts",
+  "version": "2.0.0",
+  "description": "Haven Agent Coordination Framework - Simplified Contracts",
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test",
+    "deploy:fuji": "forge script script/DeployHaven.s.sol --rpc-url https://api.avax-test.network/ext/bc/C/rpc --broadcast --verify --etherscan-api-key $SNOWTRACE_API_KEY",
+    "deploy:local": "forge script script/DeployHaven.s.sol --rpc-url http://localhost:9650/ext/bc/C/rpc --broadcast",
+    "lint": "forge fmt"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0",
+    "@openzeppelin/contracts-upgradeable": "^5.0.0"
+  },
+  "devDependencies": {
+    "forge-std": "github:foundry-rs/forge-std"
+  }
+}

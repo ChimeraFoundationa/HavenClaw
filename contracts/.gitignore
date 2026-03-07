@@ -1,0 +1,28 @@
+# Dependencies
+lib/
+node_modules/
+
+# Build outputs
+out/
+cache/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test outputs
+test-reports/
+coverage/
+
+# Logs
+*.log
