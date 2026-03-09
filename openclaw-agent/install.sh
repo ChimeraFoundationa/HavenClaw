@@ -74,6 +74,12 @@ print_warning() {
   echo -e "${YELLOW}⚠${NC} $1"
 }
 
+# Get Node.js version (remove 'v' prefix if present)
+get_node_version() {
+  local version=$(node -v)
+  echo "${version#v}"  # Remove leading 'v'
+}
+
 # Spinner animation
 spinner() {
   local pid=$1
@@ -473,12 +479,12 @@ check_prerequisites() {
     exit 1
   fi
   
-  local node_version=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
+  local node_version=$(get_node_version | cut -d'.' -f1)
   if [ "$node_version" -lt 22 ]; then
-    print_error "Node.js 22+ required. You have v$node_version"
+    print_error "Node.js 22+ required. You have v$(get_node_version)"
     exit 1
   fi
-  print_step "Node.js v$(node -v)"
+  print_step "Node.js v$(get_node_version)"
   
   # Check pnpm
   if ! command -v pnpm &> /dev/null; then
@@ -518,6 +524,11 @@ install_dependencies() {
   
   pnpm install --silent > /dev/null 2>&1 &
   spinner $!
+  
+  # Link CLI package globally for this session
+  cd apps/agent-daemon
+  pnpm link --global > /dev/null 2>&1 || true
+  cd ../..
   
   print_step "Dependencies installed"
   echo ""
@@ -684,23 +695,30 @@ register_agent() {
     # Step 2: Create ERC-8004 Identity
     echo ""
     echo -e "${CYAN}   Step 1/4: Creating ERC-8004 NFT Identity...${NC}"
-    if pnpm havenclaw-agent create-identity \
+    if pnpm --dir apps/agent-daemon exec havenclaw-agent create-identity \
       --config "$CONFIG_FILE" \
       --name "$AGENT_NAME" \
       --capabilities "$CAPABILITIES" 2>/dev/null; then
       print_step "ERC-8004 NFT Identity created"
     else
-      print_error "Failed to create identity"
-      return 1
+      print_warning "Identity creation skipped (can be done manually)"
+      echo ""
+      echo "   To create identity manually, run:"
+      echo -e "   ${BLUE}pnpm havenclaw-agent create-identity --config $CONFIG_FILE${NC}"
+      echo ""
     fi
     
     # Step 3: Register on HavenClaw Registry
     echo ""
     echo -e "${CYAN}   Step 2/4: Registering on HavenClaw Registry...${NC}"
-    if pnpm havenclaw-agent register --config "$CONFIG_FILE" 2>/dev/null; then
+    if pnpm --dir apps/agent-daemon exec havenclaw-agent register --config "$CONFIG_FILE" 2>/dev/null; then
       print_step "Agent registered on HavenClaw Registry"
     else
-      print_warning "Registry registration skipped"
+      print_warning "Registry registration skipped (can be done manually)"
+      echo ""
+      echo "   To register manually, run:"
+      echo -e "   ${BLUE}pnpm havenclaw-agent register --config $CONFIG_FILE${NC}"
+      echo ""
     fi
     
     # Step 4: Setup HPP (if enabled)
@@ -710,10 +728,14 @@ register_agent() {
       echo -e "${YELLOW}   Registering agent with HPP contract...${NC}"
       
       # Register agent with HPP
-      if pnpm havenclaw-agent hpp-register --config "$CONFIG_FILE" 2>/dev/null; then
+      if pnpm --dir apps/agent-daemon exec havenclaw-agent hpp-register --config "$CONFIG_FILE" 2>/dev/null; then
         print_step "HPP Agent registered"
       else
         print_warning "HPP registration skipped (can be done manually)"
+        echo ""
+        echo "   To register with HPP manually, run:"
+        echo -e "   ${BLUE}pnpm havenclaw-agent hpp-register --config $CONFIG_FILE${NC}"
+        echo ""
       fi
       
       # Add HPP configuration to config file
