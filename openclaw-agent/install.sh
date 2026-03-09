@@ -526,9 +526,11 @@ install_dependencies() {
   spinner $!
   
   # Link CLI package globally for this session
-  cd apps/agent-daemon
-  pnpm link --global > /dev/null 2>&1 || true
-  cd ../..
+  if [ -d "apps/agent-daemon" ]; then
+    cd apps/agent-daemon
+    pnpm link --global > /dev/null 2>&1 || true
+    cd ../..
+  fi
   
   print_step "Dependencies installed"
   echo ""
@@ -695,7 +697,7 @@ register_agent() {
     # Step 2: Create ERC-8004 Identity
     echo ""
     echo -e "${CYAN}   Step 1/4: Creating ERC-8004 NFT Identity...${NC}"
-    if pnpm --dir apps/agent-daemon exec havenclaw-agent create-identity \
+    if [ -d "apps/agent-daemon" ] && pnpm --dir apps/agent-daemon exec havenclaw-agent create-identity \
       --config "$CONFIG_FILE" \
       --name "$AGENT_NAME" \
       --capabilities "$CAPABILITIES" 2>/dev/null; then
@@ -704,37 +706,37 @@ register_agent() {
       print_warning "Identity creation skipped (can be done manually)"
       echo ""
       echo "   To create identity manually, run:"
-      echo -e "   ${BLUE}pnpm havenclaw-agent create-identity --config $CONFIG_FILE${NC}"
+      echo -e "   ${BLUE}cd HavenClaw && pnpm havenclaw-agent create-identity --config $CONFIG_FILE${NC}"
       echo ""
     fi
-    
+
     # Step 3: Register on HavenClaw Registry
     echo ""
     echo -e "${CYAN}   Step 2/4: Registering on HavenClaw Registry...${NC}"
-    if pnpm --dir apps/agent-daemon exec havenclaw-agent register --config "$CONFIG_FILE" 2>/dev/null; then
+    if [ -d "apps/agent-daemon" ] && pnpm --dir apps/agent-daemon exec havenclaw-agent register --config "$CONFIG_FILE" 2>/dev/null; then
       print_step "Agent registered on HavenClaw Registry"
     else
       print_warning "Registry registration skipped (can be done manually)"
       echo ""
       echo "   To register manually, run:"
-      echo -e "   ${BLUE}pnpm havenclaw-agent register --config $CONFIG_FILE${NC}"
+      echo -e "   ${BLUE}cd HavenClaw && pnpm havenclaw-agent register --config $CONFIG_FILE${NC}"
       echo ""
     fi
-    
+
     # Step 4: Setup HPP (if enabled)
     if [ "$AUTO_SETUP_HPP" = true ]; then
       echo ""
       echo -e "${CYAN}   Step 3/4: Enabling HPP Payment Protocol...${NC}"
       echo -e "${YELLOW}   Registering agent with HPP contract...${NC}"
-      
+
       # Register agent with HPP
-      if pnpm --dir apps/agent-daemon exec havenclaw-agent hpp-register --config "$CONFIG_FILE" 2>/dev/null; then
+      if [ -d "apps/agent-daemon" ] && pnpm --dir apps/agent-daemon exec havenclaw-agent hpp-register --config "$CONFIG_FILE" 2>/dev/null; then
         print_step "HPP Agent registered"
       else
         print_warning "HPP registration skipped (can be done manually)"
         echo ""
         echo "   To register with HPP manually, run:"
-        echo -e "   ${BLUE}pnpm havenclaw-agent hpp-register --config $CONFIG_FILE${NC}"
+        echo -e "   ${BLUE}cd HavenClaw && pnpm havenclaw-agent hpp-register --config $CONFIG_FILE${NC}"
         echo ""
       fi
       
