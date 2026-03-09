@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# ═══════════════════════════════════════════════════════════════════
+# HavenClaw Agent - Professional Installation Script
+# Autonomous AI Agents on Avalanche
+# Repository: github.com/ChimeraFoundationa/HavenClaw
+# ═══════════════════════════════════════════════════════════════════
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -8,7 +14,62 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 MAGENTA='\033[0;35m'
-NC='\033[0m' # No Color
+WHITE='\033[1;37m'
+NC='\033[0m'
+BOLD='\033[1m'
+
+# Configuration
+AGENT_NAME=""
+OPERATOR_PRIVATE_KEY=""
+CAPABILITIES=""
+AI_PROVIDER=""
+AI_API_KEY=""
+NETWORK="fuji"
+AUTO_REGISTER=false
+CONFIG_FILE="agent-config.yaml"
+
+# ═══════════════════════════════════════════════════════════════════
+# Utility Functions
+# ═══════════════════════════════════════════════════════════════════
+
+clear_screen() {
+  clear
+  echo ""
+}
+
+print_banner() {
+  echo -e "${BLUE}"
+  echo "╔══════════════════════════════════════════════════════════════╗"
+  echo "║                                                              ║"
+  echo "║   🤖  ${WHITE}HavenClaw Agent${BLUE}  ║"
+  echo "║   ${WHITE}Autonomous AI Agents on Avalanche${BLUE}                    ║"
+  echo "║                                                              ║"
+  echo "║   ${CYAN}github.com/ChimeraFoundationa/HavenClaw${BLUE}              ║"
+  echo "║                                                              ║"
+  echo "╚══════════════════════════════════════════════════════════════╝"
+  echo -e "${NC}"
+  echo ""
+}
+
+print_header() {
+  echo ""
+  echo -e "${CYAN}┌────────────────────────────────────────────────────────────┐${NC}"
+  echo -e "${CYAN}│${NC} ${BOLD}$1${NC}"
+  echo -e "${CYAN}└────────────────────────────────────────────────────────────┘${NC}"
+  echo ""
+}
+
+print_step() {
+  echo -e "${GREEN}✓${NC} $1"
+}
+
+print_error() {
+  echo -e "${RED}✗${NC} $1"
+}
+
+print_warning() {
+  echo -e "${YELLOW}⚠${NC} $1"
+}
 
 # Spinner animation
 spinner() {
@@ -17,10 +78,10 @@ spinner() {
   local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
   while [ "$(ps a | awk '{print $1}' | grep -w $pid)" ]; do
     local temp=${spinstr#?}
-    printf " [%c]  " "$spinstr"
+    printf "${CYAN} [%c]${NC} " "$spinstr"
     local spinstr=$temp${spinstr%"$temp"}
     sleep $delay
-    printf "\b\b\b\b\b\b"
+    printf "\b\b\b\b\b"
   done
   printf "    \b\b\b\b"
 }
@@ -28,281 +89,716 @@ spinner() {
 # Progress bar
 progress_bar() {
   local duration=$1
-  local message=$2
+  local message="$2"
   local bar_width=40
   local elapsed=0
   
   printf "${CYAN}┌────────────────────────────────────────────────────────┐${NC}\n"
   printf "${CYAN}│${NC} %-58s${CYAN}│${NC}\n" "$message"
-  printf "${CYAN}│${NC} [${NC}"
+  printf "${CYAN}│${NC} ["
   
   while [ $elapsed -lt $duration ]; do
     local filled=$((elapsed * bar_width / duration))
     local empty=$((bar_width - filled))
-    printf "\r${CYAN}│${NC} [${GREEN}"
+    printf "\r${CYAN}│${NC} ["
+    printf "${GREEN}"
     printf '%*s' "$filled" | tr ' ' '█'
     printf "${NC}"
     printf '%*s' "$empty" | tr ' ' '░'
-    printf "${CYAN}]${NC} %3d%%${NC}" "$((elapsed * 100 / duration))"
+    printf "${CYAN}]${NC} %3d%%" "$((elapsed * 100 / duration))"
     sleep 1
     elapsed=$((elapsed + 1))
   done
   
-  printf "\r${CYAN}│${NC} [${GREEN}"
+  printf "\r${CYAN}│${NC} ["
+  printf "${GREEN}"
   printf '%*s' "$bar_width" | tr ' ' '█'
-  printf "${NC}${CYAN}]${NC} 100%%${NC}\n"
+  printf "${NC}${CYAN}]${NC} 100%%\n"
   printf "${CYAN}└────────────────────────────────────────────────────────┘${NC}\n"
 }
 
-# Banner
-echo ""
-echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║     🤖 HavenClaw Agent - One-Line Setup                ║${NC}"
-echo -e "${BLUE}║     Autonomous AI Agents on Avalanche                  ║${NC}"
-echo -e "${BLUE}║     Repo: github.com/ChimeraFoundationa/HavenClaw      ║${NC}"
-echo -e "${BLUE}╚════════════════════════════════════════════════════════╝${NC}"
-echo ""
-
-# Parse arguments
-AGENT_NAME=""
-CAPABILITIES=""
-AUTO_REGISTER=false
-NETWORK="fuji"
-
-while [[ $# -gt 0 ]]; do
-  case $1 in
-    --agent-name)
-      AGENT_NAME="$2"
-      shift 2
-      ;;
-    --capabilities)
-      CAPABILITIES="$2"
-      shift 2
-      ;;
-    --auto-register)
-      AUTO_REGISTER=true
-      shift
-      ;;
-    --network)
-      NETWORK="$2"
-      shift 2
-      ;;
-    --help)
-      echo "Usage: curl -fsSL https://openclaw.ai/install.sh | bash -s -- [options]"
+# Menu selection
+select_menu() {
+  local prompt="$1"
+  shift
+  local options=("$@")
+  
+  echo -e "${WHITE}${BOLD}$prompt${NC}"
+  echo ""
+  
+  local i=1
+  for option in "${options[@]}"; do
+    echo -e "  ${CYAN}$i${NC}) $option"
+    ((i++))
+  done
+  
+  echo ""
+  
+  local choice
+  while true; do
+    read -p "   Enter choice (1-${#options[@]}): " choice
+    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#options[@]}" ]; then
       echo ""
-      echo "Options:"
-      echo "  --agent-name      Name for your agent (e.g., 'Trading Bot')"
-      echo "  --capabilities    Comma-separated capabilities (e.g., 'trading,analysis')"
-      echo "  --auto-register   Automatically register agent on-chain"
-      echo "  --network         Network: fuji (default) or local"
-      echo "  --help            Show this help message"
-      exit 0
+      echo "${options[$((choice-1))]}"
+      return $choice
+    else
+      echo -e "${RED}   Invalid choice. Please try again.${NC}"
+    fi
+  done
+}
+
+# Secure input
+secure_input() {
+  local prompt="$1"
+  local var_name="$2"
+  
+  while true; do
+    read -sp "   $prompt" input
+    echo ""
+    if [ -n "$input" ]; then
+      eval "$var_name='$input'"
+      return 0
+    else
+      echo -e "${RED}   This field is required. Please try again.${NC}"
+    fi
+  done
+}
+
+# Text input with validation
+text_input() {
+  local prompt="$1"
+  local var_name="$2"
+  local required="${3:-true}"
+  
+  while true; do
+    read -p "   $prompt" input
+    if [ -n "$input" ] || [ "$required" = "false" ]; then
+      eval "$var_name='$input'"
+      return 0
+    elif [ "$required" = "true" ]; then
+      echo -e "${RED}   This field is required. Please try again.${NC}"
+    else
+      return 0
+    fi
+  done
+}
+
+# ═══════════════════════════════════════════════════════════════════
+# Setup Questions
+# ═══════════════════════════════════════════════════════════════════
+
+setup_agent_name() {
+  print_header "Step 1: Agent Identity"
+  text_input "Enter your agent name: " AGENT_NAME
+  print_step "Agent name set to: $AGENT_NAME"
+}
+
+setup_network() {
+  print_header "Step 2: Network Selection"
+  
+  local networks=("Avalanche Fuji Testnet" "Local Development (Anvil)" "Avalanche Mainnet (Production)")
+  select_menu "Select your network:" "${networks[@]}"
+  local choice=$?
+  
+  case $choice in
+    1)
+      NETWORK="fuji"
+      print_step "Network: Avalanche Fuji Testnet"
+      print_warning "Get test AVAX from: https://faucet.avax.network/"
       ;;
-    *)
-      echo -e "${RED}Unknown option: $1${NC}"
-      exit 1
+    2)
+      NETWORK="local"
+      print_step "Network: Local Development (Anvil)"
+      print_warning "Make sure to run: anvil --port 8545"
+      ;;
+    3)
+      NETWORK="mainnet"
+      print_step "Network: Avalanche Mainnet"
+      print_warning "⚠️  Using mainnet - ensure you have sufficient AVAX!"
       ;;
   esac
-done
+}
 
-# Check prerequisites
-echo -e "${YELLOW}📦 Checking prerequisites...${NC}"
+setup_private_key() {
+  print_header "Step 3: Operator Private Key"
+  echo -e "${YELLOW}   Enter the private key for your agent's wallet${NC}"
+  echo -e "${YELLOW}   This key will be stored securely in agent-config.yaml${NC}"
+  echo ""
+  echo -e "${CYAN}   Options:${NC}"
+  echo -e "   ${CYAN}1${NC}) Enter private key now"
+  echo -e "   ${CYAN}2${NC}) Configure manually later"
+  echo ""
+  
+  local choice
+  read -p "   Select option (1-2): " choice
+  
+  case $choice in
+    1)
+      secure_input "   Enter private key (0x...): " OPERATOR_PRIVATE_KEY
+      print_step "Private key configured"
+      ;;
+    2)
+      print_warning "You'll need to add the private key to agent-config.yaml later"
+      ;;
+    *)
+      print_warning "Skipping private key configuration"
+      ;;
+  esac
+}
 
-# Check Node.js
-if ! command -v node &> /dev/null; then
-  echo -e "${RED}❌ Node.js not found. Please install Node.js 22+ first.${NC}"
-  echo "   https://nodejs.org/"
-  exit 1
-fi
+setup_capabilities() {
+  print_header "Step 4: Agent Capabilities"
+  echo -e "${YELLOW}   Select what your agent will do:${NC}"
+  echo ""
+  
+  local capabilities_list=(
+    "Governance Voting (participate in HAVEN governance)"
+    "Task Marketplace (accept and complete tasks)"
+    "Trading (automated trading strategies)"
+    "Analysis (market/data analysis)"
+    "Prediction (forecasting and predictions)"
+    "Custom (specify your own)"
+  )
+  
+  echo -e "${CYAN}   Select multiple capabilities (comma-separated, e.g., 1,2,4):${NC}"
+  for i in "${!capabilities_list[@]}"; do
+    echo -e "   ${CYAN}$((i+1))${NC}) ${capabilities_list[$i]}"
+  done
+  echo ""
+  
+  local selection
+  read -p "   Your selection: " selection
+  
+  local caps=""
+  IFS=',' read -ra selections <<< "$selection"
+  for sel in "${selections[@]}"; do
+    case $sel in
+      1) caps="${caps}governance," ;;
+      2) caps="${caps}task_completion," ;;
+      3) caps="${caps}trading," ;;
+      4) caps="${caps}analysis," ;;
+      5) caps="${caps}prediction," ;;
+      6) 
+        read -p "   Enter custom capabilities (comma-separated): " custom_caps
+        caps="${caps}${custom_caps},"
+        ;;
+    esac
+  done
+  
+  CAPABILITIES="${caps%,}"
+  print_step "Capabilities: $CAPABILITIES"
+}
 
-NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
-if [ "$NODE_VERSION" -lt 22 ]; then
-  echo -e "${RED}❌ Node.js 22+ required. You have v$NODE_VERSION${NC}"
-  exit 1
-fi
-echo -e "${GREEN}✓ Node.js $(node -v)${NC}"
+setup_ai_provider() {
+  print_header "Step 5: AI Provider Configuration"
+  echo -e "${YELLOW}   Select your preferred AI provider for agent reasoning:${NC}"
+  echo ""
+  
+  local providers=(
+    "OpenAI (GPT-4, GPT-4o, GPT-4o-mini)"
+    "Anthropic (Claude 3.5, Claude 3)"
+    "Google (Gemini Pro, Gemini Ultra)"
+    "Local Model (Ollama, LM Studio)"
+    "Skip AI (rule-based decisions only)"
+  )
+  
+  select_menu "Select AI provider:" "${providers[@]}"
+  local choice=$?
+  
+  case $choice in
+    1)
+      AI_PROVIDER="openai"
+      echo ""
+      echo -e "${CYAN}   OpenAI selected${NC}"
+      echo "   Get your API key from: https://platform.openai.com/api-keys"
+      echo ""
+      secure_input "   Enter OpenAI API Key: " AI_API_KEY
+      print_step "AI Provider: OpenAI"
+      ;;
+    2)
+      AI_PROVIDER="anthropic"
+      echo ""
+      echo -e "${CYAN}   Anthropic selected${NC}"
+      echo "   Get your API key from: https://console.anthropic.com/settings/keys"
+      echo ""
+      secure_input "   Enter Anthropic API Key: " AI_API_KEY
+      print_step "AI Provider: Anthropic"
+      ;;
+    3)
+      AI_PROVIDER="google"
+      echo ""
+      echo -e "${CYAN}   Google selected${NC}"
+      echo "   Get your API key from: https://makersuite.google.com/app/apikey"
+      echo ""
+      secure_input "   Enter Google API Key: " AI_API_KEY
+      print_step "AI Provider: Google"
+      ;;
+    4)
+      AI_PROVIDER="local"
+      echo ""
+      echo -e "${CYAN}   Local model selected${NC}"
+      echo "   Make sure you have Ollama or LM Studio running"
+      text_input "   Enter local model endpoint URL (default: http://localhost:11434): " AI_API_KEY "false"
+      AI_API_KEY="${AI_API_KEY:-http://localhost:11434}"
+      print_step "AI Provider: Local Model"
+      ;;
+    5)
+      AI_PROVIDER="none"
+      print_warning "AI features disabled - using rule-based decisions only"
+      ;;
+    *)
+      AI_PROVIDER="none"
+      print_warning "No AI provider selected"
+      ;;
+  esac
+}
 
-# Check pnpm
-if ! command -v pnpm &> /dev/null; then
-  echo -e "${YELLOW}⚠️  pnpm not found. Installing...${NC}"
-  npm install -g pnpm
-fi
-echo -e "${GREEN}✓ pnpm $(pnpm -v)${NC}"
+setup_auto_register() {
+  print_header "Step 6: Agent Registration"
+  echo -e "${YELLOW}   Would you like to register your agent on-chain now?${NC}"
+  echo ""
+  echo -e "${CYAN}   Options:${NC}"
+  echo -e "   ${CYAN}1${NC}) Yes, register agent on-chain"
+  echo -e "   ${CYAN}2${NC}) No, I'll register later"
+  echo ""
+  
+  local choice
+  read -p "   Select option (1-2): " choice
+  
+  case $choice in
+    1)
+      AUTO_REGISTER=true
+      print_step "Agent will be registered on-chain after setup"
+      ;;
+    2)
+      AUTO_REGISTER=false
+      print_warning "You can register later with: pnpm havenclaw-agent register"
+      ;;
+  esac
+}
 
-# Check Foundry (optional, for local development)
-FOUNDRY_INSTALLED=false
-if command -v forge &> /dev/null; then
-  FOUNDRY_INSTALLED=true
-  echo -e "${GREEN}✓ Foundry installed${NC}"
-else
-  echo -e "${YELLOW}⚠️  Foundry not installed (optional, for local blockchain)${NC}"
-  echo "   Install: curl -L https://foundry.paradigm.xyz | bash"
-fi
+# ═══════════════════════════════════════════════════════════════════
+# Installation Functions
+# ═══════════════════════════════════════════════════════════════════
 
-# Clone repository
-echo -e "${YELLOW}📥 Cloning OpenClaw Agent...${NC}"
-if [ -d "HavenClaw" ]; then
-  echo -e "${YELLOW}⚠️  HavenClaw directory already exists${NC}"
-  cd HavenClaw
-else
-  git clone https://github.com/ChimeraFoundationa/HavenClaw.git HavenClaw
-  cd HavenClaw
-fi
-echo -e "${GREEN}✓ Repository cloned${NC}"
-
-# Install dependencies
-echo -e "${YELLOW}📦 Installing dependencies...${NC}"
-pnpm install --silent > /dev/null 2>&1 &
-spinner $!
-echo -e "${GREEN}✓ Dependencies installed${NC}"
-
-# Build packages with animation
-echo -e "${YELLOW}🔨 Building packages...${NC}"
-echo -e "${CYAN}   This may take 2-3 minutes for first build${NC}"
-echo ""
-
-# Start build in background and show progress
-{
-  pnpm build > /tmp/build.log 2>&1
-  echo "DONE" > /tmp/build_status
-} &
-BUILD_PID=$!
-
-# Show animated progress (estimated 90 seconds for full build)
-progress_bar 90 "Compiling 14 packages with TypeScript"
-
-# Wait for build to complete
-wait $BUILD_PID
-
-# Check build status
-if [ -f "/tmp/build_status" ] && [ "$(cat /tmp/build_status)" = "DONE" ]; then
-  echo -e "${GREEN}✓ Build complete${NC}"
-  rm -f /tmp/build_status /tmp/build.log
-else
-  echo -e "${RED}✗ Build failed${NC}"
-  echo -e "${YELLOW}Build log:${NC}"
-  tail -50 /tmp/build.log
-  exit 1
-fi
-
-# Create configuration
-echo -e "${YELLOW}⚙️  Creating configuration...${NC}"
-
-if [ -f "agent-config.yaml" ]; then
-  echo -e "${YELLOW}⚠️  agent-config.yaml already exists${NC}"
-else
-  # Copy example config (check multiple possible locations)
-  if [ -f "agent-config-fuji.yaml" ]; then
-    cp agent-config-fuji.yaml agent-config.yaml
-  elif [ -f "apps/agent-daemon/agent-config.example.yaml" ]; then
-    cp apps/agent-daemon/agent-config.example.yaml agent-config.yaml
+check_prerequisites() {
+  print_header "Checking Prerequisites"
+  
+  # Check Node.js
+  if ! command -v node &> /dev/null; then
+    print_error "Node.js not found. Please install Node.js 22+ first."
+    echo "   Download from: https://nodejs.org/"
+    exit 1
+  fi
+  
+  local node_version=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
+  if [ "$node_version" -lt 22 ]; then
+    print_error "Node.js 22+ required. You have v$node_version"
+    exit 1
+  fi
+  print_step "Node.js v$(node -v)"
+  
+  # Check pnpm
+  if ! command -v pnpm &> /dev/null; then
+    echo -e "${YELLOW}   pnpm not found. Installing...${NC}"
+    npm install -g pnpm > /dev/null 2>&1
+  fi
+  print_step "pnpm v$(pnpm -v)"
+  
+  # Check Foundry
+  if command -v forge &> /dev/null; then
+    print_step "Foundry installed"
   else
-    # Create minimal config if no example found
-    cat > agent-config.yaml << 'EOF'
+    print_warning "Foundry not installed (optional)"
+    echo "   Install: curl -L https://foundry.paradigm.xyz | bash"
+  fi
+  
+  echo ""
+}
+
+clone_repository() {
+  print_header "Cloning Repository"
+  
+  if [ -d "HavenClaw" ]; then
+    print_warning "HavenClaw directory already exists"
+    cd HavenClaw
+  else
+    echo -e "${CYAN}   Cloning from GitHub...${NC}"
+    git clone --quiet https://github.com/ChimeraFoundationa/HavenClaw.git HavenClaw
+    cd HavenClaw
+  fi
+  print_step "Repository ready"
+  echo ""
+}
+
+install_dependencies() {
+  print_header "Installing Dependencies"
+  
+  pnpm install --silent > /dev/null 2>&1 &
+  spinner $!
+  
+  print_step "Dependencies installed"
+  echo ""
+}
+
+build_packages() {
+  print_header "Building Packages"
+  echo -e "${CYAN}   Compiling 14 TypeScript packages...${NC}"
+  echo -e "${YELLOW}   This may take 2-3 minutes on first build${NC}"
+  echo ""
+  
+  {
+    pnpm build > /tmp/build.log 2>&1
+    echo "DONE" > /tmp/build_status
+  } &
+  local build_pid=$!
+  
+  progress_bar 90 "Building packages"
+  wait $build_pid
+  
+  if [ -f "/tmp/build_status" ] && [ "$(cat /tmp/build_status)" = "DONE" ]; then
+    print_step "Build complete"
+    rm -f /tmp/build_status /tmp/build.log
+  else
+    print_error "Build failed"
+    echo -e "${YELLOW}   Build log:${NC}"
+    tail -20 /tmp/build.log
+    exit 1
+  fi
+  echo ""
+}
+
+create_configuration() {
+  print_header "Creating Configuration"
+  
+  # Get contract addresses based on network
+  local erc8004_registry="0x8004A818BFB912233c491871b3d84c89A494BD9e"
+  local agent_registry="0xe97f0c1378A75a4761f20220d64c31787FC9e321"
+  local task_marketplace="0x582fa485d560ec4c2E4DC50D14B1f29C29240e3a"
+  local haven_governance="0xCa2494A2725DeCf613628a2a70600c6495dB9369"
+  local agent_reputation="0x5964119472d9dEA5B73B7A9a911a6B2Af870dE19"
+  local rpc_url="https://api.avax-test.network/ext/bc/C/rpc"
+  local chain_id="43113"
+  
+  case $NETWORK in
+    local)
+      rpc_url="http://localhost:8545"
+      chain_id="31337"
+      ;;
+    mainnet)
+      rpc_url="https://api.avax.network/ext/bc/C/rpc"
+      chain_id="43114"
+      ;;
+  esac
+  
+  # Create config file
+  cat > "$CONFIG_FILE" << EOF
+# ═══════════════════════════════════════════════════════════════════
 # HavenClaw Agent Configuration
-agentId: havenclaw-agent
-agentName: "My Agent"
+# Generated by install.sh
+# ═══════════════════════════════════════════════════════════════════
 
-# Network configuration
+agentId: havenclaw-${AGENT_NAME,,// /-}
+agentName: "$AGENT_NAME"
+
+# Operator Configuration
+operatorPrivateKey: "${OPERATOR_PRIVATE_KEY:-"0xYOUR_PRIVATE_KEY_HERE"}"
+
+# Network Configuration
 network:
-  chainId: 43113
-  rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc"
-  explorerUrl: "https://testnet.snowscan.xyz"
+  chainId: $chain_id
+  rpcUrl: "$rpc_url"
+  explorerUrl: "$(if [ "$NETWORK" = "mainnet" ]; then echo "https://snowscan.xyz"; else echo "https://testnet.snowscan.xyz"; fi)"
 
-# Contract addresses (Fuji Testnet)
+# Contract Addresses
 contracts:
-  erc8004Registry: "0x8004A818BFB912233c491871b3d84c89A494BD9e"
-  agentRegistry: "0xe97f0c1378A75a4761f20220d64c31787FC9e321"
-  taskMarketplace: "0x582fa485d560ec4c2E4DC50D14B1f29C29240e3a"
-  havenGovernance: "0xCa2494A2725DeCf613628a2a70600c6495dB9369"
-  agentReputation: "0x5964119472d9dEA5B73B7A9a911a6B2Af870dE19"
+  erc8004Registry: "$erc8004_registry"
+  agentRegistry: "$agent_registry"
+  taskMarketplace: "$task_marketplace"
+  havenGovernance: "$haven_governance"
+  agentReputation: "$agent_reputation"
 
-# Decision engine configuration
+# Decision Engine Configuration
 decision:
-  autoVote: false
-  autoAcceptTasks: false
-  minTaskReward: "100000000000000000"
+  autoVote: $(if [[ "$CAPABILITIES" == *"governance"* ]]; then echo "false  # Enable after review"; else echo "false"; fi)
+  autoAcceptTasks: $(if [[ "$CAPABILITIES" == *"task_completion"* ]]; then echo "false  # Enable after review"; else echo "false"; fi)
+  minTaskReward: "100000000000000000"  # 0.1 AVAX
   votingRules:
     minQuorum: "0"
     maxAgainstRatio: 0.5
     trustedProposers: []
 
-# Logging configuration
+# Reasoning Engine Configuration
+reasoning:
+  observationInterval: 5000
+  minConfidenceForAction: 0.6
+  enableGovernanceAnalysis: $(if [[ "$CAPABILITIES" == *"governance"* ]]; then echo "true"; else echo "false"; fi)
+  enableTaskAnalysis: $(if [[ "$CAPABILITIES" == *"task_completion"* ]]; then echo "true"; else echo "false"; fi)
+  enableLearning: true
+
+# AI/LLM Configuration
+llm:
+  provider: "${AI_PROVIDER:-none}"
+  apiKey: "${AI_API_KEY:-"your-api-key-here"}"
+  $(if [ "$AI_PROVIDER" = "local" ]; then echo "endpoint: \"$AI_API_KEY\""; fi)
+  $(if [ "$AI_PROVIDER" = "openai" ]; then echo "model: \"gpt-4o-mini\""; fi)
+  $(if [ "$AI_PROVIDER" = "anthropic" ]; then echo "model: \"claude-3-5-sonnet-20241022\""; fi)
+  $(if [ "$AI_PROVIDER" = "google" ]; then echo "model: \"gemini-pro\""; fi)
+
+# Memory Configuration
+memory:
+  workingMemoryCapacity: 7
+  longTermMemoryLimit: 1000
+  forgettingCurve: exponential
+  decayRate: 0.1
+
+# Learning Configuration
+learning:
+  maxExperiences: 1000
+  minConfidenceForLesson: 0.7
+  autoUpdateModel: true
+
+# Governance Configuration
+governance:
+  protocolImpactWeight: 0.3
+  communityImpactWeight: 0.2
+  technicalImpactWeight: 0.25
+  economicImpactWeight: 0.25
+
+# Logging Configuration
 logging:
   level: "info"
   format: "text"
+
+# Agent Identity (auto-populated after registration)
+# identity:
+#   erc8004TokenId: ""
+#   agentAddress: ""
+#   metadataUri: ""
+#   capabilities: [${CAPABILITIES}]
 EOF
-  fi
 
-  # Update agent name if provided
-  if [ -n "$AGENT_NAME" ]; then
-    sed -i.bak "s/agentName: \".*\"/agentName: \"$AGENT_NAME\"/" agent-config.yaml
-    rm -f agent-config.yaml.bak
-  fi
-
-  echo -e "${GREEN}✓ Configuration created${NC}"
-fi
-
-# Prompt for private key if not set
-if [ -z "$OPERATOR_PRIVATE_KEY" ]; then
+  print_step "Configuration file created: $CONFIG_FILE"
   echo ""
-  echo -e "${YELLOW}🔐 Enter your private key (for signing transactions):${NC}"
-  echo -e "${YELLOW}   (Leave empty to configure manually in agent-config.yaml)${NC}"
-  read -sp "   Private Key: " PRIVATE_KEY_INPUT
+}
+
+register_agent() {
+  if [ "$AUTO_REGISTER" = true ] && [ -n "$OPERATOR_PRIVATE_KEY" ]; then
+    print_header "Registering Agent On-Chain"
+    echo -e "${CYAN}   Creating agent identity...${NC}"
+    echo ""
+    
+    if pnpm havenclaw-agent create-identity \
+      --config "$CONFIG_FILE" \
+      --name "$AGENT_NAME" \
+      --capabilities "$CAPABILITIES" 2>/dev/null; then
+      print_step "Agent registered successfully"
+    else
+      print_warning "Agent registration skipped or failed"
+      echo "   You can register later with: pnpm havenclaw-agent register"
+    fi
+    echo ""
+  fi
+}
+
+print_summary() {
+  clear_screen
+  print_banner
+  
+  echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
+  echo -e "${GREEN}║                                                              ║${NC}"
+  echo -e "${GREEN}║        ${BOLD}✅ Installation Complete!${NC}${GREEN}                              ║${NC}"
+  echo -e "${GREEN}║                                                              ║${NC}"
+  echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
   echo ""
   
-  if [ -n "$PRIVATE_KEY_INPUT" ]; then
-    # Update config with private key
-    sed -i.bak "s|operatorPrivateKey: \".*\"|operatorPrivateKey: \"$PRIVATE_KEY_INPUT\"|" agent-config.yaml
-    rm -f agent-config.yaml.bak
-    echo -e "${GREEN}✓ Private key configured${NC}"
+  echo -e "${WHITE}${BOLD}📋 Configuration Summary:${NC}"
+  echo ""
+  echo -e "  ${CYAN}Agent Name:${NC}      $AGENT_NAME"
+  echo -e "  ${CYAN}Network:${NC}         $NETWORK"
+  echo -e "  ${CYAN}Capabilities:${NC}    $CAPABILITIES"
+  echo -e "  ${CYAN}AI Provider:${NC}     ${AI_PROVIDER:-None}"
+  echo -e "  ${CYAN}Auto-Register:${NC}   $AUTO_REGISTER"
+  echo ""
+  
+  echo -e "${WHITE}${BOLD}📚 Next Steps:${NC}"
+  echo ""
+  
+  if [ -z "$OPERATOR_PRIVATE_KEY" ]; then
+    echo -e "  ${YELLOW}1.${NC} Edit configuration and add your private key:"
+    echo -e "     ${BLUE}nano $CONFIG_FILE${NC}"
+    echo ""
   fi
-fi
-
-# Create identity if capabilities provided
-if [ -n "$CAPABILITIES" ]; then
+  
+  if [ "$AI_PROVIDER" != "none" ] && [ -n "$AI_API_KEY" ]; then
+    echo -e "  ${GREEN}2.${NC} AI provider configured"
+    echo ""
+  elif [ "$AI_PROVIDER" != "none" ]; then
+    echo -e "  ${YELLOW}2.${NC} Add your AI API key to configuration:"
+    echo -e "     ${BLUE}nano $CONFIG_FILE${NC}"
+    echo ""
+  fi
+  
+  echo -e "  ${CYAN}3.${NC} Start your agent:"
+  echo -e "     ${BLUE}pnpm havenclaw-agent start --config $CONFIG_FILE${NC}"
   echo ""
-  echo -e "${YELLOW}🆔 Creating agent identity...${NC}"
-  pnpm havenclaw-agent create-identity \
-    --config agent-config.yaml \
-    --name "${AGENT_NAME:-OpenClaw Agent}" \
-    --capabilities "$CAPABILITIES"
-  echo -e "${GREEN}✓ Identity created${NC}"
-fi
-
-# Auto-register if requested
-if [ "$AUTO_REGISTER" = true ]; then
+  
+  echo -e "  ${CYAN}4.${NC} View agent status:"
+  echo -e "     ${BLUE}pnpm havenclaw-agent status --config $CONFIG_FILE${NC}"
   echo ""
-  echo -e "${YELLOW}📝 Registering agent on-chain...${NC}"
-  pnpm havenclaw-agent register --config agent-config.yaml
-  echo -e "${GREEN}✓ Agent registered${NC}"
-fi
+  
+  echo -e "${WHITE}${BOLD}📖 Documentation:${NC}"
+  echo ""
+  echo "  - Quick Start:     ${BLUE}QUICKSTART.md${NC}"
+  echo "  - Demo Guide:      ${BLUE}DEMO_GUIDE.md${NC}"
+  echo "  - Full Docs:       ${BLUE}COMPLETE_DOCUMENTATION.md${NC}"
+  echo "  - API Reference:   ${BLUE}packages/README.md${NC}"
+  echo ""
+  
+  echo -e "${WHITE}${BOLD}🔗 Useful Links:${NC}"
+  echo ""
+  echo "  - GitHub:          ${BLUE}https://github.com/ChimeraFoundationa/HavenClaw${NC}"
+  echo "  - Report Issues:   ${BLUE}https://github.com/ChimeraFoundationa/HavenClaw/issues${NC}"
+  echo "  - Fuji Explorer:   ${BLUE}https://testnet.snowscan.xyz${NC}"
+  echo "  - Get Test AVAX:   ${BLUE}https://faucet.avax.network/${NC}"
+  echo ""
+  
+  if [ "$NETWORK" = "fuji" ]; then
+    echo -e "${YELLOW}⚠️  Remember: You're on Fuji Testnet. Get test AVAX from the faucet.${NC}"
+    echo ""
+  fi
+  
+  if [ "$NETWORK" = "mainnet" ]; then
+    echo -e "${RED}⚠️  WARNING: You're on Mainnet. Double-check all configurations!${NC}"
+    echo ""
+  fi
+  
+  echo -e "${YELLOW}🔐 Security Reminder: Never share your private key or API keys!${NC}"
+  echo ""
+}
 
-# Print summary
-echo ""
-echo -e "${GREEN}╔════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║     ✅ OpenClaw Agent Setup Complete!                  ║${NC}"
-echo -e "${GREEN}╚════════════════════════════════════════════════════════╝${NC}"
-echo ""
-echo -e "${BLUE}📚 Next Steps:${NC}"
-echo ""
-echo "   1. Edit configuration:"
-echo -e "      ${YELLOW}nano agent-config.yaml${NC}"
-echo ""
-echo "   2. Start your agent:"
-echo -e "      ${YELLOW}pnpm havenclaw-agent start --config agent-config.yaml${NC}"
-echo ""
-echo "   3. View status:"
-echo -e "      ${YELLOW}pnpm havenclaw-agent status --config agent-config.yaml${NC}"
-echo ""
-echo -e "${BLUE}📖 Documentation:${NC}"
-echo "   - Quick Start: QUICKSTART.md"
-echo "   - Demo Guide: DEMO_GUIDE.md"
-echo "   - Full Docs: COMPLETE_DOCUMENTATION.md"
-echo ""
-echo -e "${BLUE}🔗 Network:${NC} ${NETWORK}"
-echo -e "${BLUE}🤖 Agent:${NC} ${AGENT_NAME:-Not configured}"
-echo -e "${BLUE}⚡ Capabilities:${NC} ${CAPABILITIES:-Not configured}"
-echo ""
-echo -e "${YELLOW}⚠️  Security Reminder: Keep your private key secure!${NC}"
-echo ""
+show_help() {
+  echo ""
+  echo "HavenClaw Agent - Interactive Installation"
+  echo ""
+  echo "Usage: curl -fsSL https://raw.githubusercontent.com/ChimeraFoundationa/HavenClaw/main/install.sh | bash"
+  echo ""
+  echo "Or download and run with options:"
+  echo ""
+  echo "  curl -O https://raw.githubusercontent.com/ChimeraFoundationa/HavenClaw/main/install.sh"
+  echo "  chmod +x install.sh"
+  echo "  ./install.sh [options]"
+  echo ""
+  echo "Options:"
+  echo "  --name VALUE           Agent name (e.g., 'Trading Bot')"
+  echo "  --capabilities VALUE   Comma-separated capabilities"
+  echo "  --network VALUE        Network: fuji, local, mainnet"
+  echo "  --ai-provider VALUE    AI provider: openai, anthropic, google, local, none"
+  echo "  --register             Auto-register agent on-chain"
+  echo "  --help                 Show this help message"
+  echo ""
+  echo "Examples:"
+  echo ""
+  echo "  # Interactive setup (recommended)"
+  echo "  ./install.sh"
+  echo ""
+  echo "  # Non-interactive with all options"
+  echo "  ./install.sh --name 'My Bot' --capabilities governance,trading --network fuji --ai-provider openai --register"
+  echo ""
+}
+
+# ═══════════════════════════════════════════════════════════════════
+# Main Installation Flow
+# ═══════════════════════════════════════════════════════════════════
+
+main() {
+  # Parse command line arguments for non-interactive mode
+  local interactive=true
+  
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --name)
+        AGENT_NAME="$2"
+        interactive=false
+        shift 2
+        ;;
+      --capabilities)
+        CAPABILITIES="$2"
+        interactive=false
+        shift 2
+        ;;
+      --network)
+        NETWORK="$2"
+        interactive=false
+        shift 2
+        ;;
+      --ai-provider)
+        AI_PROVIDER="$2"
+        interactive=false
+        shift 2
+        ;;
+      --api-key)
+        AI_API_KEY="$2"
+        interactive=false
+        shift 2
+        ;;
+      --private-key)
+        OPERATOR_PRIVATE_KEY="$2"
+        interactive=false
+        shift 2
+        ;;
+      --register)
+        AUTO_REGISTER=true
+        interactive=false
+        shift
+        ;;
+      --help|-h)
+        show_help
+        exit 0
+        ;;
+      *)
+        echo -e "${RED}Unknown option: $1${NC}"
+        echo "Use --help for usage information"
+        exit 1
+        ;;
+    esac
+  done
+  
+  clear_screen
+  print_banner
+  
+  if [ "$interactive" = true ]; then
+    # Interactive mode - ask questions
+    setup_agent_name
+    echo ""
+    setup_network
+    echo ""
+    setup_private_key
+    echo ""
+    setup_capabilities
+    echo ""
+    setup_ai_provider
+    echo ""
+    setup_auto_register
+    echo ""
+    
+    echo -e "${CYAN}Press Enter to continue with installation...${NC}"
+    read
+  else
+    # Non-interactive mode - use provided values
+    print_step "Running in non-interactive mode"
+    echo ""
+  fi
+  
+  # Run installation
+  check_prerequisites
+  clone_repository
+  install_dependencies
+  build_packages
+  create_configuration
+  register_agent
+  print_summary
+}
+
+# Run main function
+main "$@"
