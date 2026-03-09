@@ -652,7 +652,8 @@ register_agent() {
     
     # Step 1: Check balance
     echo -e "${CYAN}   Checking wallet balance...${NC}"
-    local balance=$(cast balance --ether $(grep operatorPrivateKey "$CONFIG_FILE" | cut -d'"' -f2 | sed 's/0x//') --rpc-url https://api.avax-test.network/ext/bc/C/rpc 2>/dev/null || echo "0")
+    local wallet_addr=$(grep operatorPrivateKey "$CONFIG_FILE" | cut -d'"' -f2 | sed 's/0x//')
+    local balance=$(cast balance --ether "0x$wallet_addr" --rpc-url https://api.avax-test.network/ext/bc/C/rpc 2>/dev/null || echo "0")
     
     if (( $(echo "$balance < 0.1" | bc -l 2>/dev/null || echo 1) )); then
       print_warning "Low balance detected"
@@ -667,6 +668,8 @@ register_agent() {
         print_warning "Registration cancelled"
         return 1
       fi
+    else
+      print_step "Wallet balance: ${balance} AVAX"
     fi
     
     # Step 2: Create ERC-8004 Identity
@@ -695,6 +698,15 @@ register_agent() {
     if [ "$AUTO_SETUP_HPP" = true ]; then
       echo ""
       echo -e "${CYAN}   Step 3/4: Enabling HPP Payment Protocol...${NC}"
+      echo -e "${YELLOW}   Registering agent with HPP contract...${NC}"
+      
+      # Register agent with HPP
+      if pnpm havenclaw-agent hpp-register --config "$CONFIG_FILE" 2>/dev/null; then
+        print_step "HPP Agent registered"
+      else
+        print_warning "HPP registration skipped (can be done manually)"
+      fi
+      
       # Add HPP configuration to config file
       if grep -q "paymentProtocol:" "$CONFIG_FILE"; then
         print_step "HPP Payment Protocol enabled"
@@ -704,15 +716,30 @@ register_agent() {
         echo "hpp:" >> "$CONFIG_FILE"
         echo "  enabled: true" >> "$CONFIG_FILE"
         echo "  platformFeePercent: 1" >> "$CONFIG_FILE"
+        echo "  contractAddress: 0xef925Ff5F5e41498c4CC26DC006E21F1fdB40816" >> "$CONFIG_FILE"
         print_step "HPP Payment Protocol configured"
       fi
+      
+      echo ""
+      echo -e "${CYAN}   💡 HPP Wallet Information:${NC}"
+      echo "   - HPP uses your agent's operator wallet (no separate wallet)"
+      echo "   - Payments are held in escrow by the HPP smart contract"
+      echo "   - When released, funds go directly to your wallet"
+      echo "   - Platform fee: 1% on successful payments"
+      echo ""
+      echo -e "   ${WHITE}To receive payments:${NC}"
+      echo "   1. Share your agent's wallet address with payers"
+      echo "   2. Payers create conditional payments via HPP"
+      echo "   3. Complete the task and submit proof"
+      echo "   4. Claim payment (funds sent to your wallet)"
+      echo ""
     fi
     
     # Step 5: Stake tokens (if enabled)
     if [ "$AUTO_STAKE" = true ] && [ -n "$STAKE_AMOUNT" ]; then
       echo ""
       echo -e "${CYAN}   Step 4/4: Staking $STAKE_AMOUNT HAVEN tokens...${NC}"
-      echo -e "${YELLOW}   Approve token spending...${NC}"
+      echo -e "${YELLOW}   Note: Manual approval required for token staking${NC}"
       
       # Note: This would need actual HAVEN token contract interaction
       # For now, provide instructions
@@ -781,7 +808,17 @@ print_summary() {
   echo "  - Quick Start:     ${BLUE}QUICKSTART.md${NC}"
   echo "  - Demo Guide:      ${BLUE}DEMO_GUIDE.md${NC}"
   echo "  - Full Docs:       ${BLUE}COMPLETE_DOCUMENTATION.md${NC}"
-  echo "  - API Reference:   ${BLUE}packages/README.md${NC}"
+  echo "  - HPP Guide:       ${BLUE}HPP_INTEGRATION_COMPLETE.md${NC}"
+  echo ""
+  
+  echo -e "${WHITE}${BOLD}💰 HPP Payment Protocol:${NC}"
+  echo ""
+  echo "  - HPP uses your agent's operator wallet (no separate wallet)"
+  echo "  - Share your wallet address to receive payments"
+  echo "  - Payments held in escrow until conditions met"
+  echo "  - Platform fee: 1% on successful payments"
+  echo ""
+  echo -e "  ${CYAN}Your agent wallet:${NC} $(grep operatorPrivateKey "$CONFIG_FILE" | cut -d'"' -f2)"
   echo ""
   
   echo "  - GitHub:          ${BLUE}https://github.com/ChimeraFoundationa/HavenClaw${NC}"
