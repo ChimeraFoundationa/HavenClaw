@@ -297,8 +297,21 @@ setup_ai_provider() {
     "Skip AI (rule-based decisions only)"
   )
   
-  select_menu "Select AI provider:" "${providers[@]}"
-  local choice=$?
+  echo -e "${CYAN}   Select AI provider:${NC}"
+  for i in "${!providers[@]}"; do
+    echo -e "   ${CYAN}$((i+1))${NC}) ${providers[$i]}"
+  done
+  echo ""
+  
+  local choice
+  while true; do
+    read -p "   Enter choice (1-${#providers[@]}): " choice
+    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#providers[@]}" ]; then
+      break
+    else
+      echo -e "${RED}   Invalid choice. Please try again.${NC}"
+    fi
+  done
   
   case $choice in
     1)
@@ -340,10 +353,6 @@ setup_ai_provider() {
     5)
       AI_PROVIDER="none"
       print_warning "AI features disabled - using rule-based decisions only"
-      ;;
-    *)
-      AI_PROVIDER="none"
-      print_warning "No AI provider selected"
       ;;
   esac
 }
