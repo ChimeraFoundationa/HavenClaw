@@ -6,12 +6,58 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
+
+# Spinner animation
+spinner() {
+  local pid=$1
+  local delay=0.1
+  local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+  while [ "$(ps a | awk '{print $1}' | grep -w $pid)" ]; do
+    local temp=${spinstr#?}
+    printf " [%c]  " "$spinstr"
+    local spinstr=$temp${spinstr%"$temp"}
+    sleep $delay
+    printf "\b\b\b\b\b\b"
+  done
+  printf "    \b\b\b\b"
+}
+
+# Progress bar
+progress_bar() {
+  local duration=$1
+  local message=$2
+  local bar_width=40
+  local elapsed=0
+  
+  printf "${CYAN}┌────────────────────────────────────────────────────────┐${NC}\n"
+  printf "${CYAN}│${NC} %-58s${CYAN}│${NC}\n" "$message"
+  printf "${CYAN}│${NC} [${NC}"
+  
+  while [ $elapsed -lt $duration ]; do
+    local filled=$((elapsed * bar_width / duration))
+    local empty=$((bar_width - filled))
+    printf "\r${CYAN}│${NC} [${GREEN}"
+    printf '%*s' "$filled" | tr ' ' '█'
+    printf "${NC}"
+    printf '%*s' "$empty" | tr ' ' '░'
+    printf "${CYAN}]${NC} %3d%%${NC}" "$((elapsed * 100 / duration))"
+    sleep 1
+    elapsed=$((elapsed + 1))
+  done
+  
+  printf "\r${CYAN}│${NC} [${GREEN}"
+  printf '%*s' "$bar_width" | tr ' ' '█'
+  printf "${NC}${CYAN}]${NC} 100%%${NC}\n"
+  printf "${CYAN}└────────────────────────────────────────────────────────┘${NC}\n"
+}
 
 # Banner
 echo ""
 echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║     🤖 OpenClaw Agent - One-Line Setup                 ║${NC}"
+echo -e "${BLUE}║     🤖 HavenClaw Agent - One-Line Setup                ║${NC}"
 echo -e "${BLUE}║     Autonomous AI Agents on Avalanche                  ║${NC}"
 echo -e "${BLUE}║     Repo: github.com/ChimeraFoundationa/HavenClaw      ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════════╝${NC}"
@@ -106,13 +152,38 @@ echo -e "${GREEN}✓ Repository cloned${NC}"
 
 # Install dependencies
 echo -e "${YELLOW}📦 Installing dependencies...${NC}"
-pnpm install
+pnpm install --silent > /dev/null 2>&1 &
+spinner $!
 echo -e "${GREEN}✓ Dependencies installed${NC}"
 
-# Build packages
+# Build packages with animation
 echo -e "${YELLOW}🔨 Building packages...${NC}"
-pnpm build
-echo -e "${GREEN}✓ Build complete${NC}"
+echo -e "${CYAN}   This may take 2-3 minutes for first build${NC}"
+echo ""
+
+# Start build in background and show progress
+{
+  pnpm build > /tmp/build.log 2>&1
+  echo "DONE" > /tmp/build_status
+} &
+BUILD_PID=$!
+
+# Show animated progress (estimated 90 seconds for full build)
+progress_bar 90 "Compiling 14 packages with TypeScript"
+
+# Wait for build to complete
+wait $BUILD_PID
+
+# Check build status
+if [ -f "/tmp/build_status" ] && [ "$(cat /tmp/build_status)" = "DONE" ]; then
+  echo -e "${GREEN}✓ Build complete${NC}"
+  rm -f /tmp/build_status /tmp/build.log
+else
+  echo -e "${RED}✗ Build failed${NC}"
+  echo -e "${YELLOW}Build log:${NC}"
+  tail -50 /tmp/build.log
+  exit 1
+fi
 
 # Create configuration
 echo -e "${YELLOW}⚙️  Creating configuration...${NC}"
@@ -120,15 +191,55 @@ echo -e "${YELLOW}⚙️  Creating configuration...${NC}"
 if [ -f "agent-config.yaml" ]; then
   echo -e "${YELLOW}⚠️  agent-config.yaml already exists${NC}"
 else
-  # Copy example config
-  cp agent-config-fuji.yaml agent-config.yaml
-  
+  # Copy example config (check multiple possible locations)
+  if [ -f "agent-config-fuji.yaml" ]; then
+    cp agent-config-fuji.yaml agent-config.yaml
+  elif [ -f "apps/agent-daemon/agent-config.example.yaml" ]; then
+    cp apps/agent-daemon/agent-config.example.yaml agent-config.yaml
+  else
+    # Create minimal config if no example found
+    cat > agent-config.yaml << 'EOF'
+# HavenClaw Agent Configuration
+agentId: havenclaw-agent
+agentName: "My Agent"
+
+# Network configuration
+network:
+  chainId: 43113
+  rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc"
+  explorerUrl: "https://testnet.snowscan.xyz"
+
+# Contract addresses (Fuji Testnet)
+contracts:
+  erc8004Registry: "0x8004A818BFB912233c491871b3d84c89A494BD9e"
+  agentRegistry: "0xe97f0c1378A75a4761f20220d64c31787FC9e321"
+  taskMarketplace: "0x582fa485d560ec4c2E4DC50D14B1f29C29240e3a"
+  havenGovernance: "0xCa2494A2725DeCf613628a2a70600c6495dB9369"
+  agentReputation: "0x5964119472d9dEA5B73B7A9a911a6B2Af870dE19"
+
+# Decision engine configuration
+decision:
+  autoVote: false
+  autoAcceptTasks: false
+  minTaskReward: "100000000000000000"
+  votingRules:
+    minQuorum: "0"
+    maxAgainstRatio: 0.5
+    trustedProposers: []
+
+# Logging configuration
+logging:
+  level: "info"
+  format: "text"
+EOF
+  fi
+
   # Update agent name if provided
   if [ -n "$AGENT_NAME" ]; then
     sed -i.bak "s/agentName: \".*\"/agentName: \"$AGENT_NAME\"/" agent-config.yaml
     rm -f agent-config.yaml.bak
   fi
-  
+
   echo -e "${GREEN}✓ Configuration created${NC}"
 fi
 
