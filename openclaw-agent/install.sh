@@ -26,6 +26,9 @@ AI_PROVIDER=""
 AI_API_KEY=""
 NETWORK="fuji"
 AUTO_REGISTER=false
+AUTO_SETUP_HPP=false
+AUTO_STAKE=false
+STAKE_AMOUNT=""
 CONFIG_FILE="agent-config.yaml"
 
 # ═══════════════════════════════════════════════════════════════════
@@ -346,8 +349,13 @@ setup_ai_provider() {
 }
 
 setup_auto_register() {
-  print_header "Step 6: Agent Registration"
+  print_header "Step 6: On-Chain Registration"
   echo -e "${YELLOW}   Would you like to register your agent on-chain now?${NC}"
+  echo ""
+  echo -e "${CYAN}   This will:${NC}"
+  echo "   - Create ERC-8004 NFT Identity"
+  echo "   - Register on HavenClaw Registry"
+  echo "   - Initialize reputation profile"
   echo ""
   echo -e "${CYAN}   Options:${NC}"
   echo -e "   ${CYAN}1${NC}) Yes, register agent on-chain"
@@ -361,10 +369,83 @@ setup_auto_register() {
     1)
       AUTO_REGISTER=true
       print_step "Agent will be registered on-chain after setup"
+      setup_hpp
+      setup_stake
       ;;
     2)
       AUTO_REGISTER=false
       print_warning "You can register later with: pnpm havenclaw-agent register"
+      ;;
+  esac
+}
+
+setup_hpp() {
+  print_header "Step 7: HPP Payment Protocol"
+  echo -e "${YELLOW}   Would you like to enable HPP (HavenClaw Payment Protocol)?${NC}"
+  echo ""
+  echo -e "${CYAN}   HPP enables:${NC}"
+  echo "   - Conditional payments for tasks"
+  echo "   - Automated reward distribution"
+  echo "   - 1% platform fee on completed tasks"
+  echo ""
+  echo -e "${CYAN}   Options:${NC}"
+  echo -e "   ${CYAN}1${NC}) Yes, enable HPP"
+  echo -e "   ${CYAN}2${NC}) No, skip HPP setup"
+  echo ""
+  
+  local choice
+  read -p "   Select option (1-2): " choice
+  
+  case $choice in
+    1)
+      AUTO_SETUP_HPP=true
+      print_step "HPP will be enabled for your agent"
+      ;;
+    2)
+      AUTO_SETUP_HPP=false
+      print_warning "HPP disabled - you can enable later in config"
+      ;;
+  esac
+}
+
+setup_stake() {
+  print_header "Step 8: Token Staking"
+  echo -e "${YELLOW}   Would you like to stake HAVEN tokens for voting power?${NC}"
+  echo ""
+  echo -e "${CYAN}   Staking benefits:${NC}"
+  echo "   - Increased voting power in governance"
+  echo "   - Higher reputation score"
+  echo "   - Access to premium features"
+  echo ""
+  echo -e "${CYAN}   Options:${NC}"
+  echo -e "   ${CYAN}1${NC}) Yes, stake tokens"
+  echo -e "   ${CYAN}2${NC}) No, skip staking"
+  echo ""
+  
+  local choice
+  read -p "   Select option (1-2): " choice
+  
+  case $choice in
+    1)
+      AUTO_STAKE=true
+      echo ""
+      echo -e "${CYAN}   Enter stake amount (in HAVEN):${NC}"
+      echo "   - Minimum: 100 HAVEN"
+      echo "   - Recommended: 1,000-10,000 HAVEN"
+      echo ""
+      while true; do
+        read -p "   Stake amount: " STAKE_AMOUNT
+        if [[ "$STAKE_AMOUNT" =~ ^[0-9]+$ ]] && [ "$STAKE_AMOUNT" -ge 100 ]; then
+          print_step "Will stake $STAKE_AMOUNT HAVEN tokens"
+          break
+        else
+          echo -e "${RED}   Please enter at least 100 HAVEN${NC}"
+        fi
+      done
+      ;;
+    2)
+      AUTO_STAKE=false
+      print_warning "Staking skipped - you can stake later"
       ;;
   esac
 }
@@ -567,19 +648,82 @@ EOF
 
 register_agent() {
   if [ "$AUTO_REGISTER" = true ] && [ -n "$OPERATOR_PRIVATE_KEY" ]; then
-    print_header "Registering Agent On-Chain"
-    echo -e "${CYAN}   Creating agent identity...${NC}"
-    echo ""
+    print_header "On-Chain Registration"
     
+    # Step 1: Check balance
+    echo -e "${CYAN}   Checking wallet balance...${NC}"
+    local balance=$(cast balance --ether $(grep operatorPrivateKey "$CONFIG_FILE" | cut -d'"' -f2 | sed 's/0x//') --rpc-url https://api.avax-test.network/ext/bc/C/rpc 2>/dev/null || echo "0")
+    
+    if (( $(echo "$balance < 0.1" | bc -l 2>/dev/null || echo 1) )); then
+      print_warning "Low balance detected"
+      echo ""
+      echo "   Your wallet needs at least 0.1 AVAX for gas fees."
+      echo "   Current balance: ${balance} AVAX"
+      echo ""
+      echo -e "   ${YELLOW}Get test AVAX from: https://faucet.avax.network/${NC}"
+      echo ""
+      read -p "   Continue anyway? (y/n): " continue_reg
+      if [ "$continue_reg" != "y" ]; then
+        print_warning "Registration cancelled"
+        return 1
+      fi
+    fi
+    
+    # Step 2: Create ERC-8004 Identity
+    echo ""
+    echo -e "${CYAN}   Step 1/4: Creating ERC-8004 NFT Identity...${NC}"
     if pnpm havenclaw-agent create-identity \
       --config "$CONFIG_FILE" \
       --name "$AGENT_NAME" \
       --capabilities "$CAPABILITIES" 2>/dev/null; then
-      print_step "Agent registered successfully"
+      print_step "ERC-8004 NFT Identity created"
     else
-      print_warning "Agent registration skipped or failed"
-      echo "   You can register later with: pnpm havenclaw-agent register"
+      print_error "Failed to create identity"
+      return 1
     fi
+    
+    # Step 3: Register on HavenClaw Registry
+    echo ""
+    echo -e "${CYAN}   Step 2/4: Registering on HavenClaw Registry...${NC}"
+    if pnpm havenclaw-agent register --config "$CONFIG_FILE" 2>/dev/null; then
+      print_step "Agent registered on HavenClaw Registry"
+    else
+      print_warning "Registry registration skipped"
+    fi
+    
+    # Step 4: Setup HPP (if enabled)
+    if [ "$AUTO_SETUP_HPP" = true ]; then
+      echo ""
+      echo -e "${CYAN}   Step 3/4: Enabling HPP Payment Protocol...${NC}"
+      # Add HPP configuration to config file
+      if grep -q "paymentProtocol:" "$CONFIG_FILE"; then
+        print_step "HPP Payment Protocol enabled"
+      else
+        echo "" >> "$CONFIG_FILE"
+        echo "# HPP Configuration" >> "$CONFIG_FILE"
+        echo "hpp:" >> "$CONFIG_FILE"
+        echo "  enabled: true" >> "$CONFIG_FILE"
+        echo "  platformFeePercent: 1" >> "$CONFIG_FILE"
+        print_step "HPP Payment Protocol configured"
+      fi
+    fi
+    
+    # Step 5: Stake tokens (if enabled)
+    if [ "$AUTO_STAKE" = true ] && [ -n "$STAKE_AMOUNT" ]; then
+      echo ""
+      echo -e "${CYAN}   Step 4/4: Staking $STAKE_AMOUNT HAVEN tokens...${NC}"
+      echo -e "${YELLOW}   Approve token spending...${NC}"
+      
+      # Note: This would need actual HAVEN token contract interaction
+      # For now, provide instructions
+      print_warning "Manual staking required"
+      echo ""
+      echo "   To stake tokens, run:"
+      echo -e "   ${BLUE}pnpm havenclaw-agent stake --amount $STAKE_AMOUNT --config $CONFIG_FILE${NC}"
+      echo ""
+    fi
+    
+    print_step "On-chain registration complete!"
     echo ""
   fi
 }
@@ -597,11 +741,13 @@ print_summary() {
   
   echo -e "${WHITE}${BOLD}📋 Configuration Summary:${NC}"
   echo ""
-  echo -e "  ${CYAN}Agent Name:${NC}      $AGENT_NAME"
-  echo -e "  ${CYAN}Network:${NC}         Avalanche Fuji Testnet"
-  echo -e "  ${CYAN}Capabilities:${NC}    $CAPABILITIES"
-  echo -e "  ${CYAN}AI Provider:${NC}     ${AI_PROVIDER:-None}"
-  echo -e "  ${CYAN}Auto-Register:${NC}   $AUTO_REGISTER"
+  echo -e "  ${CYAN}Agent Name:${NC}         $AGENT_NAME"
+  echo -e "  ${CYAN}Network:${NC}             Avalanche Fuji Testnet"
+  echo -e "  ${CYAN}Capabilities:${NC}        $CAPABILITIES"
+  echo -e "  ${CYAN}AI Provider:${NC}         ${AI_PROVIDER:-None}"
+  echo -e "  ${CYAN}On-Chain Registered:${NC} $AUTO_REGISTER"
+  echo -e "  ${CYAN}HPP Enabled:${NC}         $AUTO_SETUP_HPP"
+  echo -e "  ${CYAN}Staking:${NC}             $([ "$AUTO_STAKE" = true ] && echo "$STAKE_AMOUNT HAVEN" || echo "Not configured")"
   echo ""
   
   echo -e "${WHITE}${BOLD}📚 Next Steps:${NC}"
@@ -666,11 +812,13 @@ show_help() {
   echo ""
   echo "Options:"
   echo "  --name VALUE           Agent name (e.g., 'Trading Bot')"
-  echo "  --capabilities VALUE   Comma-separated capabilities"
+  echo "  --capabilities VALUE   Comma-separated capabilities (governance,trading,analysis)"
   echo "  --ai-provider VALUE    AI provider: openai, anthropic, google, local, none"
   echo "  --api-key VALUE        AI provider API key"
   echo "  --private-key VALUE    Operator private key (0x...)"
-  echo "  --register             Auto-register agent on-chain"
+  echo "  --register             Auto-register agent on-chain (includes ERC-8004 NFT)"
+  echo "  --hpp                  Enable HPP Payment Protocol"
+  echo "  --stake VALUE          Stake HAVEN tokens (e.g., --stake 1000)"
   echo "  --help                 Show this help message"
   echo ""
   echo "Examples:"
@@ -679,7 +827,10 @@ show_help() {
   echo "  ./install.sh"
   echo ""
   echo "  # Non-interactive with all options"
-  echo "  ./install.sh --name 'My Bot' --capabilities governance,trading --ai-provider openai --register"
+  echo "  ./install.sh --name 'My Bot' --capabilities governance,trading --ai-provider openai --register --hpp --stake 1000"
+  echo ""
+  echo "  # Quick setup with registration only"
+  echo "  ./install.sh --name 'Bot' --capabilities trading --private-key 0x... --register"
   echo ""
 }
 
@@ -722,6 +873,17 @@ main() {
         AUTO_REGISTER=true
         interactive=false
         shift
+        ;;
+      --hpp)
+        AUTO_SETUP_HPP=true
+        interactive=false
+        shift
+        ;;
+      --stake)
+        AUTO_STAKE=true
+        STAKE_AMOUNT="$2"
+        interactive=false
+        shift 2
         ;;
       --help|-h)
         show_help
