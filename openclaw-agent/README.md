@@ -10,7 +10,10 @@
 [![Status](https://img.shields.io/badge/status-production-green)](STATUS.md)
 [![Network](https://img.shields.io/badge/network-Avalanche%20Fuji-red)]()
 
-**One-Line Setup:** `curl -fsSL https://openclaw.ai/install.sh | bash`
+**One-Line Setup:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/ChimeraFoundationa/HavenClaw/main/install.sh | bash
+```
 
 </div>
 
@@ -36,7 +39,7 @@
 ### One-Line Install
 
 ```bash
-curl -fsSL https://openclaw.ai/install.sh | bash -s -- \
+curl -fsSL https://raw.githubusercontent.com/ChimeraFoundationa/HavenClaw/main/install.sh | bash -s -- \
   --agent-name "My Agent" \
   --capabilities "trading,analysis" \
   --auto-register

@@ -13,6 +13,7 @@ echo ""
 echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║     🤖 OpenClaw Agent - One-Line Setup                 ║${NC}"
 echo -e "${BLUE}║     Autonomous AI Agents on Avalanche                  ║${NC}"
+echo -e "${BLUE}║     Repo: github.com/ChimeraFoundationa/HavenClaw      ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -94,12 +95,12 @@ fi
 
 # Clone repository
 echo -e "${YELLOW}📥 Cloning OpenClaw Agent...${NC}"
-if [ -d "openclaw-agent" ]; then
-  echo -e "${YELLOW}⚠️  openclaw-agent directory already exists${NC}"
-  cd openclaw-agent
+if [ -d "HavenClaw" ]; then
+  echo -e "${YELLOW}⚠️  HavenClaw directory already exists${NC}"
+  cd HavenClaw
 else
-  git clone https://github.com/havenclaw/agent.git openclaw-agent
-  cd openclaw-agent
+  git clone https://github.com/ChimeraFoundationa/HavenClaw.git HavenClaw
+  cd HavenClaw
 fi
 echo -e "${GREEN}✓ Repository cloned${NC}"
 
