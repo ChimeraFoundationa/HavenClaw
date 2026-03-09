@@ -1,0 +1,26 @@
+{
+  "name": "@havenclaw/tests",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test:unit": "vitest run unit/",
+    "test:integration": "vitest run integration/",
+    "test:coverage": "vitest run --coverage",
+    "test:all": "pnpm test:unit && pnpm test:integration"
+  },
+  "dependencies": {
+    "@havenclaw/runtime": "workspace:*",
+    "@havenclaw/tools": "workspace:*",
+    "@havenclaw/haven-interface": "workspace:*",
+    "@havenclaw/transaction": "workspace:*",
+    "@havenclaw/identity": "workspace:*",
+    "@havenclaw/decision": "workspace:*",
+    "ethers": "^6.13.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "vitest": "^1.2.0",
+    "@vitest/coverage-v8": "^1.2.0"
+  }
+}

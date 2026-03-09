@@ -1,0 +1,40 @@
+{
+  "name": "@havenclaw/agent-daemon",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/daemon.js",
+  "bin": {
+    "havenclaw-agent": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsup src/daemon.ts src/cli.ts --format esm --dts",
+    "dev": "tsx src/daemon.ts",
+    "start": "node dist/daemon.js",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@havenclaw/contract-client": "workspace:*",
+    "@havenclaw/decision": "workspace:*",
+    "@havenclaw/haven-interface": "workspace:*",
+    "@havenclaw/identity": "workspace:*",
+    "@havenclaw/reasoning": "workspace:*",
+    "@havenclaw/runtime": "workspace:*",
+    "@havenclaw/tools": "workspace:*",
+    "@havenclaw/transaction": "workspace:*",
+    "@havenclaw/memory": "workspace:*",
+    "@havenclaw/learning": "workspace:*",
+    "@havenclaw/governance": "workspace:*",
+    "commander": "^11.1.0",
+    "ethers": "^6.13.5",
+    "yaml": "^2.3.4",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsup": "^8.0.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

@@ -1,0 +1,87 @@
+# HavenClaw Agent Configuration
+# Fuji Testnet - Latest Deployment (March 8, 2026)
+
+agentId: havenclaw-test-agent
+agentName: "HavenClaw Test Agent"
+
+# Operator private key (for signing transactions)
+operatorPrivateKey: "0xaee82fa4e0df351eb8275b0de7f00bddb8935c4d996c39bbe83069bdde48109a"
+
+# Network configuration
+network:
+  chainId: 43113
+  rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc"
+  explorerUrl: "https://testnet.snowscan.xyz"
+
+# Contract addresses (Latest Deployment)
+contracts:
+  # ERC-8004 Official AI Agent Identity
+  erc8004Registry: "0x8004A818BFB912233c491871b3d84c89A494BD9e"
+  erc8004Reputation: "0x8004B663056A597Dffe9eCcC1965A193B7388713"
+
+  # HavenClaw Protocol
+  agentRegistry: "0xe97f0c1378A75a4761f20220d64c31787FC9e321"
+  agentReputation: "0x5964119472d9dEA5B73B7A9a911a6B2Af870dE19"
+  havenGovernance: "0xCa2494A2725DeCf613628a2a70600c6495dB9369"
+  havenToken: "0x0f847172d1C496dd847d893A0318dBF4B826ef63"
+  taskMarketplace: "0x582fa485d560ec4c2E4DC50D14B1f29C29240e3a"
+
+  # Optional
+  gat: "0xa91393D9f9A770e70E02128BCF6b2413Ca391212"
+  escrow: "0xC4Bb287c74FF92cD4B0c62D51523a03FD0F0C543"
+  paymentProtocol: "0xef925Ff5F5e41498c4CC26DC006E21F1fdB40816"
+
+# Decision engine configuration (Phase 1 - Rule-based)
+decision:
+  autoVote: false  # Set to true for autonomous voting
+  autoAcceptTasks: false  # Set to true for autonomous task acceptance
+  minTaskReward: "100000000000000000"  # 0.1 AVAX minimum
+  votingRules:
+    minQuorum: "0"
+    maxAgainstRatio: 0.5
+    trustedProposers: []
+
+# Reasoning engine configuration (Phase 2 - OODA loop)
+reasoning:
+  observationInterval: 5000  # Check every 5 seconds
+  minConfidenceForAction: 0.6  # 60% confidence threshold
+  enableGovernanceAnalysis: true
+  enableTaskAnalysis: true
+  enableLearning: true
+
+# Memory system configuration (Phase 2)
+memory:
+  workingMemoryCapacity: 7
+  longTermMemoryLimit: 1000
+  forgettingCurve: exponential
+  decayRate: 0.1
+
+# Learning system configuration (Phase 2)
+learning:
+  maxExperiences: 1000
+  minConfidenceForLesson: 0.7
+  autoUpdateModel: true
+
+# Governance analyzer configuration (Phase 2)
+governance:
+  protocolImpactWeight: 0.3
+  communityImpactWeight: 0.2
+  technicalImpactWeight: 0.25
+  economicImpactWeight: 0.25
+  trustedProposers: []
+
+# Logging configuration
+logging:
+  level: "info"
+  format: "text"
+
+# Identity (optional - will be created if not exists)
+# Uncomment after running agent registration
+# identity:
+#   erc8004TokenId: "34"  # Your ERC-8004 NFT Token ID
+#   agentAddress: "0x8DaCCc56db34234471cE5635039934d3900f4F69"  # Your agent wallet
+#   metadataUri: "ipfs://QmTestMetadataURI"
+#   capabilities:
+#     - trading
+#     - governance
+#     - analysis

@@ -1,0 +1,25 @@
+{
+  "name": "@havenclaw/examples",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "create-identity": "tsx examples/create-identity.ts",
+    "monitor-governance": "tsx examples/monitor-governance.ts",
+    "check-status": "tsx examples/check-status.ts"
+  },
+  "dependencies": {
+    "@havenclaw/runtime": "workspace:*",
+    "@havenclaw/tools": "workspace:*",
+    "@havenclaw/haven-interface": "workspace:*",
+    "@havenclaw/transaction": "workspace:*",
+    "@havenclaw/identity": "workspace:*",
+    "@havenclaw/decision": "workspace:*",
+    "ethers": "^6.13.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

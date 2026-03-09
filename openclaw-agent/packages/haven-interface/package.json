@@ -1,0 +1,35 @@
+{
+  "name": "@havenclaw/haven-interface",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "dev": "tsup src/index.ts --format esm --watch",
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "generate:types": "typechain --target ethers-v6 --out-dir src/types/contracts '../contracts-abi/*.json'"
+  },
+  "dependencies": {
+    "@havenclaw/runtime": "workspace:*",
+    "@havenclaw/tools": "workspace:*",
+    "ethers": "^6.13.5"
+  },
+  "devDependencies": {
+    "@typechain/ethers-v6": "^0.5.1",
+    "typechain": "^8.3.2",
+    "@types/node": "^20.11.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  }
+}

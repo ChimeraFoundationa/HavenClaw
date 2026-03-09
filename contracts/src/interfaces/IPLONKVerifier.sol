@@ -18,21 +18,11 @@ interface IPLONKVerifier {
         uint256[2] W3;
     }
 
-    /// @notice Verification result
-    struct VerificationResult {
-        bool isValid;
-        uint256[] publicInputs;
-        uint256 timestamp;
-    }
-
     /// @notice Verify a PLONK proof
     /// @param proof The PLONK proof
-    /// @param publicInputs The public inputs [agentId, capabilityHash, avgAccuracy, timestamp, reserved1, reserved2]
+    /// @param publicInputs The public inputs
     /// @return isValid Whether the proof is valid
-    function verifyProof(PlonkProof calldata proof, uint256[] calldata publicInputs)
-        external
-        view
-        returns (bool isValid);
+    function verifyProof(PlonkProof calldata proof, uint256[] calldata publicInputs) external view returns (bool isValid);
 
     /// @notice Get number of public inputs
     function NUM_PUBLIC_INPUTS() external view returns (uint256);

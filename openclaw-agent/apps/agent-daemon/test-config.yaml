@@ -1,0 +1,39 @@
+# OpenClaw Agent Configuration
+# ⚠️ SECURITY: Never commit this file with real private key!
+
+agentId: "test-trading-bot"
+agentName: "Test Trading Bot"
+operatorPrivateKey: "0xYOUR_PRIVATE_KEY_HERE"
+
+network:
+  chainId: 43113
+  rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc"
+  wsUrl: "wss://api.avax-test.network/ext/bc/C/ws"
+  explorerUrl: "https://testnet.snowscan.xyz"
+
+contracts:
+  erc8004Registry: "0x8004A818BFB912233c491871b3d84c89A494BD9e"
+  erc6551Registry: "0xaCA0fA40b2eaAdcdF1c72cB36e88aBd76C0EA464"
+  erc6551Implementation: "0x0000000000000000000000000000000000000000"
+  agentRegistry: "0x58EcC1A3B5a9c78f59A594120405058FB40a3201"
+  agentReputation: "0x662BdE306632F8923ADcb6aBEEbD3bCAf5400AaC"
+  havenGovernance: "0x283C8AEB114d2025A48C064eb99FEb6248c4E6f"
+  havenToken: "0x0f847172d1C496dd847d893A0318dBF4B826ef63"
+  taskMarketplace: "0xFbD804508Ad7C65aE5D23090018eB2eE400ea1e5"
+  gat: "0xa91393D9f9A770e70E02128BCF6b2413Ca391212"
+  escrow: "0xC4Bb287c74FF92cD4B0c62D51523a03FD0F0C543"
+
+decision:
+  autoVote: false
+  autoAcceptTasks: false
+  minTaskReward: "1000000000000000000"
+  votingRules:
+    trustedProposers: []
+
+transactions:
+  gasPriceBufferPercent: 20
+  confirmationsRequired: 1
+
+logging:
+  level: "info"
+  format: "text"
